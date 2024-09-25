@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            background-color: black; /* Solid black background for the website */
+            color: white; /* White text for better readability */
+        }
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            color: red; /* Red color for the title */
+        }
+        #quoteInput {
+            width: 90%;
+            max-width: 600px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #fff; /* White border */
+            border-radius: 4px;
+            background-color: red; /* Red background for input */
+            color: white; /* White text for input */
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: red; /* Red buttons */
+            color: white;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: darkred; /* Darker red on hover */
+        }
+        #imagesContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+        .quoteImage {
+            max-width: 90%;
+            height: auto;
+            margin: 10px;
+            border: 1px solid white; /* White border for images */
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Quote Image Generator</h1>
+    <input type="text" id="quoteInput" placeholder='Enter quotes separated by commas (e.g., "Quote 1", "Quote 2")'>
+    <button id="generateButton">Generate Images</button>
+    <button id="downloadButton" style="display:none;">Download Images</button>
+    <div id="imagesContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        const generateButton = document.getElementById('generateButton');
+        const downloadButton = document.getElementById('downloadButton');
+        const imagesContainer = document.getElementById('imagesContainer');
+        let images = [];
+
+        generateButton.addEventListener('click', () => {
+            const quotes = document.getElementById('quoteInput').value.match(/"([^"]+)"/g);
+            imagesContainer.innerHTML = '';
+            images = [];
+            if (quotes) {
+                quotes.forEach((quote, index) => {
+                    const quoteText = quote.replace(/"/g, '');
+                    createImage(quoteText, index);
+                });
+                downloadButton.style.display = 'block';
+            } else {
+                alert("Please enter quotes in the format: \"Quote 1\", \"Quote 2\"");
+            }
+        });
+
+        function createImage(quote, index) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = 400; // Set canvas size for square images
+            canvas.width = size;
+            canvas.height = size;
+
+            // Create a vibrant gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            const color1 = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // Random bright color
+            const color2 = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // Another random bright color
+            gradient.addColorStop(0, color1);
+            gradient.addColorStop(1, color2);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'white'; // White text for quotes
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const maxWidth = size - 40; // Leave some padding
+            const words = quote.split(' ');
+            let line = '';
+            const lines = [];
+
+            words.forEach(word => {
+                const testLine = line + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && line.length > 0) {
+                    lines.push(line);
+                    line = word + ' ';
+                } else {
+                    line = testLine;
+                }
+            });
+            lines.push(line);
+
+            const lineHeight = 30;
+            const y = (canvas.height - (lines.length * lineHeight)) / 2 + lineHeight / 2;
+            lines.forEach((line, i) => {
+                ctx.fillText(line, canvas.width / 2, y + i * lineHeight);
+            });
+
+            const imgURL = canvas.toDataURL('image/png');
+            const img = document.createElement('img');
+            img.src = imgURL;
+            img.className = 'quoteImage';
+            imagesContainer.appendChild(img);
+            images.push({ data: imgURL.split(',')[1], name: `quote${index + 1}.png` });
+        }
+
+        downloadButton.addEventListener('click', () => {
+            const zip = new JSZip();
+            images.forEach(image => {
+                zip.file(image.name, image.data, { base64: true });
+            });
+            zip.generateAsync({ type: 'blob' })
+                .then(content => {
+                    saveAs(content, 'quotes.zip');
+                });
+        });
+    </script>
+
+</body>
+</html>
